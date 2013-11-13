@@ -1,26 +1,62 @@
-#!/bin/bash
+#! /usr/bin/env bash
 # Extract subtitles from each MKV file in the given directory
 # Modified from http://www.computernerdfromhell.com/blog/automatically-extract-subtitles-from-mkv/
 # I had the same problem as the author of the above blog post
 
+while getopts ":hvF" opt; do
+  case $opt in
+  h)
+    cat <<USE
+      USAGE: subs [-hvF] [directory]
+        Extract the subtitles of all the mkv files in [directory]. If directory is
+        ommitted the current directory is used.
+
+        Extracted subtitles are saved as the name of the mkv file plus an ".srt"
+        prefix. If the subtitle already exists it is skipped unless -F is used.
+
+      OPTIONS:
+        -h    Show this help
+        -F    Overwrite existing subtitles
+USE
+    exit 0
+    ;;
+  F)
+    overwrite=1
+    ;;
+
+  v)
+    verbose=1
+    ;;
+
+    \?)
+      echo "Unknown option '$opt'. Use -h for help."
+      exit 1
+  esac
+done
+
+shift $((OPTIND-1))
+
 # If no directory is given, work in local dir
-if [ "$1" = "" ]; then
-  DIR="."
+if [[ "$1" = "" ]]; then
+  dir="."
 else
-  DIR="$1"
+  dir="$@"
 fi
 
 # Get all the MKV files in this dir and its subdirs
-find "$DIR" -type f -name '*.mkv' | while read filename
+find "$dir" -type f -name '*.mkv' | while read filename
 do
+  [[ $verbose -eq 1 ]] && echo "Processing '$filename'"
   # Get base name for subtitle
   subtitlename=${filename%.*}
-  if [ -f "$subtitlename.srt" ]; then
+  if [[ -f "$subtitlename.srt" && ! $overwrite ]]; then
+    [[ $verbose -eq 1 ]] && echo "$subtitlename.srt exists. Skipping..."
     continue
   fi
   # Find out which tracks contain the subtitles
   mkvmerge -i "$filename" | grep 'subtitles' | while read subline
   do
+    
     # Grep the number of the subtitle track
     tracknumber=`echo $subline | egrep -o "[0-9]{1,2}" | head -1`
 
