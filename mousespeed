@@ -1,0 +1,4 @@
+#!/bin/bash
+# Turn off mouse acceleration
+xset m 1/1 9999
+
